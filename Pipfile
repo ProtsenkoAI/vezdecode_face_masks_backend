@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+imutils = "*"
+numpy = "*"
+opencv-python = "<4"
+concurrent-videocapture = "*"
+python-path = "*"
+Pillow = ">=6.2.2,<7"
+fastapi = "*"
+uvicorn = "*"
+python-multipart = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"

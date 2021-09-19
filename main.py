@@ -125,6 +125,7 @@ def apply_sprite2feature(
     y,
     w,
     h,
+    is_eyes=False,
 ):
     sprite = cv2.imread(sprite_path, -1)
     (h_sprite, w_sprite) = (sprite.shape[0], sprite.shape[1])
@@ -137,17 +138,22 @@ def apply_sprite2feature(
 
     feature = apply_Haar_filter(sub_img, haar_filter, 1.3, 10, 10)
     if len(feature) != 0:
-        xpos, ypos = x, y + feature[0, 1]  # adjust only to feature in y axis (eyes)
+        if is_eyes and len(feature) == 2:
+            xpos = x + (feature[:, 0].sum() + feature[0, 2]) / 2 - desired_width / 2
+            ypos = y + feature[:, 1].mean() + feature[:, 3].mean() / 2 - desired_width * h_sprite / w_sprite / 2
 
-        if adjust2feature:
-            size_mustache = 1.2  # how many times bigger than mouth
-            factor = 1.0 * (feature[0, 2] * size_mustache) / w_sprite
-            xpos = (
-                x + feature[0, 0] - int(feature[0, 2] * (size_mustache - 1) / 2)
-            )  # centered respect to width
-            ypos = (
-                y + y_offset_image + feature[0, 1] - int(h_sprite * factor)
-            )  # right on top
+        else:
+            xpos, ypos = x, y + feature[0, 1]  # adjust only to feature in y axis (eyes)
+
+            if adjust2feature:
+                size_mustache = 1.2  # how many times bigger than mouth
+                factor = 1.0 * (feature[0, 2] * size_mustache) / w_sprite
+                xpos = (
+                    x + feature[0, 0] - int(feature[0, 2] * (size_mustache - 1) / 2)
+                )  # centered respect to width
+                ypos = (
+                    y + y_offset_image + feature[0, 1] - int(h_sprite * factor)
+                )  # right on top
 
     sprite = cv2.resize(sprite, (0, 0), fx=factor, fy=factor)
     image = draw_sprite(image, sprite, int(xpos), int(ypos))
@@ -222,17 +228,18 @@ def cvloop(run_event, read_camera=0, virtual_camera=0):
                 # empirically eyes are at 1/3 of the face from the top
                 apply_sprite2feature(
                     image,
-                    "./sprites/glasses.png",
+                    "./sprites/more_anime.png",
                     haar_eyes,
                     0,
                     h / 3,
                     0,
                     False,
-                    w,
+                    w * 0.9,
                     x,
                     y,
                     w,
                     h,
+                    is_eyes=True
                 )
 
             # flies condition
@@ -262,70 +269,70 @@ def cvloop(run_event, read_camera=0, virtual_camera=0):
 
     video_capture.release()
 
+if __name__ == "__main__":
+    # Parser
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--read_camera", type=int, default=0, help="Id to read camera from")
+    parser.add_argument(
+        "--virtual_camera",
+        type=int,
+        default=0,
+        help="If different from 0, creates a virtual camera with results on that id (linux only)",
+    )
+    args = parser.parse_args()
 
-# Parser
-parser = argparse.ArgumentParser()
-parser.add_argument("--read_camera", type=int, default=0, help="Id to read camera from")
-parser.add_argument(
-    "--virtual_camera",
-    type=int,
-    default=0,
-    help="If different from 0, creates a virtual camera with results on that id (linux only)",
-)
-args = parser.parse_args()
+    # Initialize GUI object
+    root = Tk()
+    root.title("Snap chat filters")
+    this_dir = os.path.dirname(os.path.realpath(__file__))
+    # Adds a custom logo
+    imgicon = PhotoImage(file=os.path.join(this_dir, "imgs", "icon.gif"))
+    root.tk.call("wm", "iconphoto", root._w, imgicon)
 
-# Initialize GUI object
-root = Tk()
-root.title("Snap chat filters")
-this_dir = os.path.dirname(os.path.realpath(__file__))
-# Adds a custom logo
-imgicon = PhotoImage(file=os.path.join(this_dir, "imgs", "icon.gif"))
-root.tk.call("wm", "iconphoto", root._w, imgicon)
+    ##Create 3 buttons and assign their corresponding function to active sprites
+    btn1 = Button(root, text="Hat", command=lambda: put_sprite(0))
+    btn1.pack(side="top", fill="both", expand="no", padx="10", pady="10")
 
-##Create 3 buttons and assign their corresponding function to active sprites
-btn1 = Button(root, text="Hat", command=lambda: put_sprite(0))
-btn1.pack(side="top", fill="both", expand="no", padx="10", pady="10")
+    btn2 = Button(root, text="Mustache", command=lambda: put_sprite(1))
+    btn2.pack(side="top", fill="both", expand="no", padx="10", pady="10")
 
-btn2 = Button(root, text="Mustache", command=lambda: put_sprite(1))
-btn2.pack(side="top", fill="both", expand="no", padx="10", pady="10")
+    btn3 = Button(root, text="Flies", command=lambda: put_sprite(2))
+    btn3.pack(side="top", fill="both", expand="no", padx="10", pady="10")
 
-btn3 = Button(root, text="Flies", command=lambda: put_sprite(2))
-btn3.pack(side="top", fill="both", expand="no", padx="10", pady="10")
+    btn4 = Button(root, text="Glasses", command=lambda: put_sprite(3))
+    btn4.pack(side="top", fill="both", expand="no", padx="10", pady="10")
 
-btn4 = Button(root, text="Glasses", command=lambda: put_sprite(3))
-btn4.pack(side="top", fill="both", expand="no", padx="10", pady="10")
+    # Create the panel where webcam image will be shown
+    panelA = Label(root)
+    panelA.pack(padx=10, pady=10)
 
-# Create the panel where webcam image will be shown
-panelA = Label(root)
-panelA.pack(padx=10, pady=10)
+    # Variable to control which sprite you want to visualize
+    SPRITES = [
+        0,
+        0,
+        0,
+        0,
+    ]  # hat, mustache, flies, glasses -> 1 is visible, 0 is not visible
+    BTNS = [btn1, btn2, btn3, btn4]
 
-# Variable to control which sprite you want to visualize
-SPRITES = [
-    0,
-    0,
-    0,
-    0,
-]  # hat, mustache, flies, glasses -> 1 is visible, 0 is not visible
-BTNS = [btn1, btn2, btn3, btn4]
+    # Creates a thread where the magic ocurs
+    run_event = threading.Event()
+    run_event.set()
+    action = Thread(target=cvloop, args=(run_event, args.read_camera, args.virtual_camera))
+    action.setDaemon(True)
+    action.start()
 
-# Creates a thread where the magic ocurs
-run_event = threading.Event()
-run_event.set()
-action = Thread(target=cvloop, args=(run_event, args.read_camera, args.virtual_camera))
-action.setDaemon(True)
-action.start()
-
-# Function to close all properly, aka threads and GUI
-def terminate():
-    global root, run_event, action
-    print("Closing thread opencv...")
-    run_event.clear()
-    time.sleep(1)
-    # action.join()  # strangely in Linux this thread does not terminate properly, so .join never finishes
-    root.destroy()
-    print("All closed! Chao")
+    # Function to close all properly, aka threads and GUI
+    def terminate():
+        global root, run_event, action
+        print("Closing thread opencv...")
+        run_event.clear()
+        time.sleep(1)
+        # action.join()  # strangely in Linux this thread does not terminate properly, so .join never finishes
+        root.destroy()
+        print("All closed! Chao")
 
 
-# When the GUI is closed it actives the terminate function
-root.protocol("WM_DELETE_WINDOW", terminate)
-root.mainloop()  # creates loop of GUI
+    # When the GUI is closed it actives the terminate function
+    root.protocol("WM_DELETE_WINDOW", terminate)
+    root.mainloop()  # creates loop of GUI
