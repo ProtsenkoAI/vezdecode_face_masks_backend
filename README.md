@@ -17,5 +17,5 @@ pip install dlib
 
 ### run
 ```
-uvicorn run_server:app --reload
+uvicorn run_server:app --reload --port 8000
 ```
