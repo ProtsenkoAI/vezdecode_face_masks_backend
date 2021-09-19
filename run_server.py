@@ -11,7 +11,7 @@ app = FastAPI()
 
 
 @app.post("/apply_mask")
-async def create_upload_file(image: str = Body(...), mask_name: str = "anime"):
+async def create_upload_file(image: str = Body(...), mask_name: str = "shrek"):
     print("mask_name", mask_name)
     encoded_data = image.split(',')[1]
     nparr = np.fromstring(base64.b64decode(encoded_data), np.uint8)
